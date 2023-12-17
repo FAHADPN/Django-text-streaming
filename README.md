@@ -1,5 +1,11 @@
 # Django-text-streaming
 
+## Demo
+
+
+https://github.com/FAHADPN/Django-text-streaming/assets/47622791/27fc203b-0322-4ff4-9877-04a44a728851
+
+
 
 ## Installation
 
