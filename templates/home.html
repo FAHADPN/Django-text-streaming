@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Chat Interface</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css">
+</head>
+<style>
+    .vh-100 {
+        min-height: 100vh;
+    }
+
+    .chat-interface {
+        max-width: 600px;
+        width: 100%;
+    }
+
+    .chat-container {
+        background-color: #f8f8f8;
+        border-radius: 5px;
+        padding: 10px;
+        height: 400px;
+        overflow-y: auto;
+    }
+
+    .chat-message {
+        max-width: 80%;
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 20px;
+    }
+
+    .sent {
+        align-self: flex-end;
+        background-color: #dcf8c6;
+    }
+
+    .received {
+        align-self: flex-start;
+        background-color: #ffffff;
+    }
+    
+</style>
+<body>
+<div class="container border border-dark-subtle p-1 mt-2 d-flex flex-column align-items-center justify-content-center vh-100">
+        <div class="chat-interface">
+                <h1 class="h1 text-center">Simple Chat Interface</h1>
+                <div class="chat-container" id="chat_output">
+                    <!-- Chat messages will be displayed here -->
+                </div>
+                <div class="chat-input input-group mt-2">
+                    <input type="text" class="form-control" id="user_input" placeholder="Type your message...">
+                    <button class="btn btn-success" id="send_message">Send</button>
+                </div>
+        </div>
+</div>
+
+  <script src="http://code.jquery.com/jquery-latest.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+    crossorigin="anonymous"></script>
+  <script>
+    let controller; // AbortController to stop the streaming
+    const chatOutput = $("#chat_output");
+    const userInput = $("#user_input");
+
+    async function startStreaming(url, onDataReceived, onError, onComplete) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: userInput.val() }),
+          signal: controller.signal, // Attach the AbortSignal to the fetch request
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            // The stream has ended
+            onComplete();
+            break;
+          }
+
+          // Process the data chunk
+          onDataReceived(value);
+        }
+      } catch (error) {
+        onError(error);
+      }
+    }
+
+    function startStream(url, onDataReceived, onError, onComplete) {
+      controller = new AbortController(); // Create a new AbortController for each streaming session
+
+      startStreaming(url, onDataReceived, onError, onComplete);
+    }
+
+    function stopStreaming() {
+      if (controller) {
+        controller.abort(); // Abort the fetch request and stop the streaming
+        controller = null;
+      }
+    }
+
+    function onDataReceived(dataChunk) {
+      // Process each data chunk as it arrives
+      const text = new TextDecoder().decode(dataChunk);
+      const letters = text.split('');
+      letters.forEach(letter => {
+        chatOutput.append(`<span class="letter">${letter}</span>`);
+      });
+    }
+
+    function onError(error) {
+      // Handle streaming error
+      console.error("Error while streaming:", error);
+    }
+
+    function onComplete() {
+      // Stream completed
+      console.log("Streaming completed.");
+    }
+
+    $("#send_message").on("click", function () {
+      const userMessage = userInput.val();
+      if (userMessage.trim() !== "") {
+        // Send user's message as a POST request
+        startStreaming(
+          '{%url "generate_stream"%}',
+          onDataReceived,
+          onError,
+          onComplete
+        );
+
+        // Display the user's message in the chat
+        chatOutput.append(`<div class="chat-message sent"><p class="message-content">${userMessage}</p></div>`);
+        userInput.val(""); // Clear the input field
+      }
+    });
+
+    // Simulate starting the streaming when the page loads
+    startStream(
+     '{%url "generate_stream"%}',
+      onDataReceived,
+      onError,
+      onComplete
+    );
+  </script>
+</body>
+
+</html>
