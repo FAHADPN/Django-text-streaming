@@ -13,15 +13,18 @@
     }
 
     .chat-interface {
-        max-width: 600px;
+        max-width: 100%;
         width: 100%;
+        height: 100%;
     }
 
     .chat-container {
+        display: flex;
+        flex-direction: column;
         background-color: #f8f8f8;
         border-radius: 5px;
         padding: 10px;
-        height: 400px;
+        height: 80%;
         overflow-y: auto;
     }
 
@@ -39,7 +42,7 @@
 
     .received {
         align-self: flex-start;
-        background-color: #ffffff;
+        background-color: #d8d8d8;
     }
     
 </style>
@@ -65,8 +68,14 @@
     let controller; // AbortController to stop the streaming
     const chatOutput = $("#chat_output");
     const userInput = $("#user_input");
+    var idCount = 0;
 
     async function startStreaming(url, onDataReceived, onError, onComplete) {
+
+    const receivedMessage = `<div class="chat-message received"><p class="message-content" id="${idCount}"></p></div>`;
+      chatOutput.append(receivedMessage);
+      idCount++;
+      console.log(idCount);
       try {
         const response = await fetch(url, {
           method: 'POST',
@@ -102,7 +111,6 @@
 
     function startStream(url, onDataReceived, onError, onComplete) {
       controller = new AbortController(); // Create a new AbortController for each streaming session
-
       startStreaming(url, onDataReceived, onError, onComplete);
     }
 
@@ -117,8 +125,11 @@
       // Process each data chunk as it arrives
       const text = new TextDecoder().decode(dataChunk);
       const letters = text.split('');
+      const ids = idCount-1;
+      const chat = $(`#${ids}`);
       letters.forEach(letter => {
-        chatOutput.append(`<span class="letter">${letter}</span>`);
+        chat.append(`<span class="letter">${letter}</span>`);
+        chatOutput.scrollTop(chatOutput.prop("scrollHeight"));
       });
     }
 
@@ -135,17 +146,17 @@
     $("#send_message").on("click", function () {
       const userMessage = userInput.val();
       if (userMessage.trim() !== "") {
+        chatOutput.append(`<div class="chat-message sent"><p class="message-content">${userMessage}</p></div>`);
         // Send user's message as a POST request
         startStreaming(
-          '{%url "generate_stream"%}',
-          onDataReceived,
-          onError,
-          onComplete
-        );
-
-        // Display the user's message in the chat
-        chatOutput.append(`<div class="chat-message sent"><p class="message-content">${userMessage}</p></div>`);
+            '{%url "generate_stream"%}',
+            onDataReceived,
+            onError,
+            onComplete
+            );
+            
         userInput.val(""); // Clear the input field
+            // Display the user's message in the chat
       }
     });
 
