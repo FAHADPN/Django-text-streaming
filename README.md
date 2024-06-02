@@ -16,7 +16,7 @@ To install Django-text-streaming, follow these steps:
 3. Create a virtual environment: `python -m venv env`
 4. Activate the virtual environment:<br> 
     `source env/bin/activate` - for Linux <br>
-    `source env/Scripts/activate` - for windows 
+    `.\env\Scripts\activate` - for windows 
 5. Install the required packages: `pip install -r requirements.txt`
 6. Run database migrations: `python manage.py migrate`
 7. Add the OpenAI API Key in the `views.py` file inside `app` directory
